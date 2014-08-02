@@ -121,6 +121,24 @@ public class IridiumEventManager implements EventManager {
 	}
 	
 	/**
+	 * Pushes an event with no filter checking. This removes overhead from checking for filters.
+	 * Only useful in extreme situations where performance is critical.
+	 * @param event Event to push
+	 */
+	public void pushSimple(Event event) {
+		ListeningMethod[] listeningMethods = this.cookedOrderedListeningMethods.get(event.getClass());
+		if(listeningMethods == null)return;
+		for(ListeningMethod m : listeningMethods) //Benchmarking shows the the performance difference between foreach and for + get is negligible for this event manager
+		{
+			try {
+				m.getMethod().invoke(m.getOwner(), event);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
 	 * Sorts the given events by priority in the ordered listening method map.
 	 * @param dirtyEvents Events that need to be resorted
 	 */

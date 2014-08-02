@@ -38,7 +38,7 @@ public class IridiumEventManager implements EventManager {
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public void register(Object listeningObject) throws InvalidListenerException {
+	public synchronized void register(Object listeningObject) throws InvalidListenerException {
 		List<Class<? extends Event>> dirtyEvents = new ArrayList<Class<? extends Event>>();
 		
 		Class<?> objectClass = listeningObject.getClass();
@@ -85,7 +85,7 @@ public class IridiumEventManager implements EventManager {
 	}
 
 	@Override
-	public boolean unregister(Object listeningObject) {
+	public synchronized boolean unregister(Object listeningObject) {
 		boolean succeeded = true;
 		for(List<ListeningMethod> methodList : this.orderedListeningMethods.values()) {
 			for(ListeningMethod m : methodList) {

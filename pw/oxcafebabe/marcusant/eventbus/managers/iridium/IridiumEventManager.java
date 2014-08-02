@@ -108,7 +108,11 @@ public class IridiumEventManager implements EventManager {
 			if(m.hasFilters) {
 				boolean failedFilter = false;
 				for(ListenerFilter filter : m.getFilters()) {
-					if(!filter.shouldSend(event, m.getMethod()))failedFilter = true;
+					try {
+						if(!filter.shouldSend(event, m.getMethod()))failedFilter = true;
+					} catch(Exception e) { //Event was not the event the filter was expecting
+						e.printStackTrace();
+					}
 				}
 				if(failedFilter)continue; //failed a filter, don't fire the event
 			}

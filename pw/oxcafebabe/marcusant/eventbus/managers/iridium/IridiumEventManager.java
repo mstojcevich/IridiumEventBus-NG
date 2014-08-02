@@ -20,9 +20,15 @@ import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
 public class IridiumEventManager implements EventManager {
 
 	/**
-	 * Map that maps events to an array of all methods listening for it, in order by priority.
+	 * Map that maps events to an ArrayList of all methods listening for it, in order by priority.
 	 */
 	private final Map<Class<? extends Event>, List<ListeningMethod>> orderedListeningMethods = new HashMap<Class<? extends Event>, List<ListeningMethod>>(); //We assume that these lists will always be ArrayLists
+	
+	/**
+	 * Map that maps events to an array of all methods listening for it, in order by priority.
+	 * This map is baked in sortEventsByPriority
+	 */
+	private final Map<Class<? extends Event>, ListeningMethod[]> cookedOrderedListeningMethods = new HashMap<Class<? extends Event>, ListeningMethod[]>(); //We assume that these lists will always be ArrayLists
 	
 	/**
 	 * Whether the listening method map is "clean" (sorted properly based on priority)
@@ -85,7 +91,7 @@ public class IridiumEventManager implements EventManager {
 
 	@Override
 	public void push(Event event) {
-		List<ListeningMethod> listeningMethods = this.orderedListeningMethods.get(event.getClass());
+		ListeningMethod[] listeningMethods = this.cookedOrderedListeningMethods.get(event.getClass());
 		if(listeningMethods == null)return;
 		for(ListeningMethod m : listeningMethods) {
 			try {
@@ -112,6 +118,7 @@ public class IridiumEventManager implements EventManager {
 				}
 			}
 			this.orderedListeningMethods.put(event, orderedListeningMethods);
+			this.cookedOrderedListeningMethods.put(event, orderedListeningMethods.toArray(new ListeningMethod[orderedListeningMethods.size()]));
 		}
 	}
 

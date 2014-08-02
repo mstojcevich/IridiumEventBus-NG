@@ -15,5 +15,11 @@ public @interface EventListener {
 	 * @return Priority of the listening method
 	 */
 	public Priority value() default Priority.NORMAL;
+	
+	/**
+	 * Filters to apply to the event before firing to the listener
+	 * @return A list of filters to run the event and method through before firing
+	 */
+	public Class<? extends ListenerFilter>[] filters() default {};
 
 }

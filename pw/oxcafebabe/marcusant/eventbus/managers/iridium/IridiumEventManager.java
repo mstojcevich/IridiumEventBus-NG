@@ -10,6 +10,7 @@ import java.util.Map;
 import pw.oxcafebabe.marcusant.eventbus.Event;
 import pw.oxcafebabe.marcusant.eventbus.EventListener;
 import pw.oxcafebabe.marcusant.eventbus.EventManager;
+import pw.oxcafebabe.marcusant.eventbus.ListenerFilter;
 import pw.oxcafebabe.marcusant.eventbus.Priority;
 import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
 
@@ -59,7 +60,16 @@ public class IridiumEventManager implements EventManager {
 						}
 						m.setAccessible(true); //people report speedups when invoking, so why not. Removes overhead from access checks.
 						List<ListeningMethod> listeningMethods = this.orderedListeningMethods.get(event);
-						ListeningMethod listeningMethod = new ListeningMethod(listeningObject, m, eventListener.value(), event);
+						List<ListenerFilter> filterList = new ArrayList<ListenerFilter>();
+						for(Class<? extends ListenerFilter> filterClass : eventListener.filters()) {
+							try {
+								filterList.add(filterClass.newInstance());
+							} catch (Exception e) {
+								throw new InvalidListenerException(objectClass, m);
+							}
+						}
+						ListenerFilter[] filters = filterList.toArray(new ListenerFilter[filterList.size()]);
+						ListeningMethod listeningMethod = new ListeningMethod(listeningObject, m, eventListener.value(), event, filters);
 						listeningMethods.add(listeningMethod);
 					} else {
 						throw new InvalidListenerException(objectClass, m);
@@ -93,7 +103,15 @@ public class IridiumEventManager implements EventManager {
 	public void push(Event event) {
 		ListeningMethod[] listeningMethods = this.cookedOrderedListeningMethods.get(event.getClass());
 		if(listeningMethods == null)return;
-		for(ListeningMethod m : listeningMethods) {
+		for(ListeningMethod m : listeningMethods) 
+		{
+			if(m.hasFilters) {
+				boolean failedFilter = false;
+				for(ListenerFilter filter : m.getFilters()) {
+					if(!filter.shouldSend(event, m.getMethod()))failedFilter = true;
+				}
+				if(failedFilter)continue; //failed a filter, don't fire the event
+			}
 			try {
 				m.getMethod().invoke(m.getOwner(), event);
 			} catch(Exception e) {

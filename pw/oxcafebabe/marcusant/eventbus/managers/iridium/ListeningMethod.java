@@ -13,6 +13,9 @@ class ListeningMethod {
 	private final Priority priority;
 	private final Class<? extends Event> event; //TODO since this is stored in a hashmap with the listenermethod in the IridiumEvent implementation, this is unused and should possibly be removed
 	private final ListenerFilter[] filters;
+	/**
+	 * Whether there are filters to check before firing an event
+	 */
 	public final boolean hasFilters; //Because this is accessed every event fire, this is public since invoking a getter method adds additional overhead
 	
 	/**
@@ -60,10 +63,18 @@ class ListeningMethod {
 		return this.event;
 	}
 	
+	/**
+	 * Get every filter to check
+	 * @return Array of filters to check
+	 */
 	public ListenerFilter[] getFilters() {
 		return this.filters;
 	}
 	
+	/**
+	 * Checks whether there are any filters to check
+	 * @return Whether the listening method has any filters to check
+	 */
 	public boolean hasFilters() {
 		return this.hasFilters;
 	}

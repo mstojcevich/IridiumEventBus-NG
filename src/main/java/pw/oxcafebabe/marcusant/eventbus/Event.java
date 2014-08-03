@@ -1,5 +1,7 @@
 package pw.oxcafebabe.marcusant.eventbus;
 
+import pw.oxcafebabe.marcusant.eventbus.exceptions.EventCancellationException;
+
 /**
  * Object that can be sent to all listening methods.
  * @author Marcus
@@ -23,6 +25,6 @@ public interface Event {
     /**
      * Cancel the event
      */
-    public void cancel();
+    public void cancel() throws EventCancellationException;
 
 }

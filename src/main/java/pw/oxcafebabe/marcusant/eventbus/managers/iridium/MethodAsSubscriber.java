@@ -1,10 +1,12 @@
 package pw.oxcafebabe.marcusant.eventbus.managers.iridium;
 
 import pw.oxcafebabe.marcusant.eventbus.Event;
+import pw.oxcafebabe.marcusant.eventbus.ListenerFilter;
 import pw.oxcafebabe.marcusant.eventbus.Subscriber;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * Bridges reflective method calls to the {@link pw.oxcafebabe.marcusant.eventbus.Subscriber} interface
@@ -17,6 +19,7 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
     private final int priority;
     private final Object methodParent;
     private final Method bridgedMethod;
+    private final List<ListenerFilter> filters;
 
     /**
      * Default constructor
@@ -24,10 +27,12 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
      * @param bridgedMethod method that will be called when an event is received
      * @param priority      priority of the subscriber
      */
-    public MethodAsSubscriber(Object methodParent, Method bridgedMethod, int priority){
+    public MethodAsSubscriber(Object methodParent, Method bridgedMethod, int priority,
+                              List<ListenerFilter> filters) {
         this.priority       = priority;
         this.methodParent   = methodParent;
         this.bridgedMethod  = bridgedMethod;
+        this.filters        = filters;
     }
 
     @Override
@@ -43,7 +48,12 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
     }
 
     @Override
-    public int priorityValue() {
+    public int getPriorityValue() {
         return priority;
+    }
+
+    @Override
+    public List<ListenerFilter> getFilters() {
+        return filters;
     }
 }

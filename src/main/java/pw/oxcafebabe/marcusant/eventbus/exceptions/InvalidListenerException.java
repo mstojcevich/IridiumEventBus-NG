@@ -6,9 +6,7 @@ import java.lang.reflect.Method;
  * Exception thrown when a method marked as a listener is not a valid event listener.
  * @author Marcus
  */
-public class InvalidListenerException extends Exception {
-	
-	private static final long serialVersionUID = -8561771487700556570L;
+public final class InvalidListenerException extends EventException {
 	
 	/**
 	 * Class that contains the invalid method

@@ -1,5 +1,7 @@
 package pw.oxcafebabe.marcusant.eventbus;
 
+import java.util.Comparator;
+
 /**
  * Receives events
  * Date: 8/3/14
@@ -20,5 +22,15 @@ public interface Subscriber<ET extends Event> {
      * @return priority
      */
     public int priorityValue();
+
+    /**
+     * Compares two subscribers by priority
+     */
+    public static class SubscriberComparator implements Comparator<Subscriber> {
+        @Override
+        public int compare(Subscriber o1, Subscriber o2) {
+            return o2.priorityValue() - o1.priorityValue();
+        }
+    }
 
 }

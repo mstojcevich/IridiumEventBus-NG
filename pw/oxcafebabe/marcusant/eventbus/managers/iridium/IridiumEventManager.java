@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import pw.oxcafebabe.marcusant.eventbus.Event;
 import pw.oxcafebabe.marcusant.eventbus.EventListener;
@@ -56,7 +57,7 @@ public class IridiumEventManager implements EventManager {
 						this.unclean = true;
 						dirtyEvents.add(event);
 						if(!this.orderedListeningMethods.containsKey(event)) {
-							this.orderedListeningMethods.put(event, new ArrayList<ListeningMethod>());
+							this.orderedListeningMethods.put(event, new CopyOnWriteArrayList<ListeningMethod>());
 						}
 						m.setAccessible(true); //people report speedups when invoking, so why not. Removes overhead from access checks.
 						List<ListeningMethod> listeningMethods = this.orderedListeningMethods.get(event);
@@ -96,6 +97,7 @@ public class IridiumEventManager implements EventManager {
 				}
 			}
 		}
+		this.recookListeningMethods();
 		return succeeded;
 	}
 
@@ -149,7 +151,7 @@ public class IridiumEventManager implements EventManager {
 	private void sortEventsByPriority(Class<? extends Event> ... dirtyEvents) {
 		for(Class<? extends Event> event : dirtyEvents) {
 			List<ListeningMethod> registeredListeningMethods = orderedListeningMethods.get(event);
-			List<ListeningMethod> orderedListeningMethods = new ArrayList<ListeningMethod>();
+			List<ListeningMethod> orderedListeningMethods = new CopyOnWriteArrayList<ListeningMethod>();
 			for(Priority p : Priority.values()) {
 				for(ListeningMethod listeningMethod : registeredListeningMethods) {
 					if(listeningMethod.getPriority().equals(p)) {
@@ -159,6 +161,17 @@ public class IridiumEventManager implements EventManager {
 			}
 			this.orderedListeningMethods.put(event, orderedListeningMethods);
 			this.cookedOrderedListeningMethods.put(event, orderedListeningMethods.toArray(new ListeningMethod[orderedListeningMethods.size()]));
+		}
+	}
+	
+	/**
+	 * Recooks the cookedOrderedListeningMethods
+	 */
+	private void recookListeningMethods() {
+		this.cookedOrderedListeningMethods.clear();
+		for(Class<? extends Event> e : this.orderedListeningMethods.keySet()) {
+			List<ListeningMethod> l = this.orderedListeningMethods.get(e);
+			this.cookedOrderedListeningMethods.put(e, l.toArray(new ListeningMethod[l.size()]));
 		}
 	}
 

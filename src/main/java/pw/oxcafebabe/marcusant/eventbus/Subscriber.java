@@ -14,4 +14,11 @@ public interface Subscriber<ET extends Event> {
      */
     public void eventReceived(ET event);
 
+    /**
+     * Returns a value describing the ordering that the event would prefer
+     *
+     * @return priority
+     */
+    public int priorityValue();
+
 }

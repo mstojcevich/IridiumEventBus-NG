@@ -34,6 +34,6 @@ public @interface EventListener {
 	 * Filters to apply to the event before firing to the listener
 	 * @return A list of filters to run the event and method through before firing
 	 */
-	public Class<? extends ListenerFilter>[] filters() default { Cancellable.class };
+	public Class<? extends ListenerFilter<?>>[] filters() default { Cancellable.class };
 
 }

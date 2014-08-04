@@ -29,7 +29,7 @@ public interface Subscriber<ET extends Event> {
      *
      * @return filters
      */
-    public List<ListenerFilter> getFilters();
+    public List<ListenerFilter<ET>> getFilters();
 
     /**
      * Compares two subscribers by priority

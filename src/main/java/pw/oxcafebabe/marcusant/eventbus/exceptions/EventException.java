@@ -6,4 +6,10 @@ package pw.oxcafebabe.marcusant.eventbus.exceptions;
  */
 public class EventException extends Exception {
 
+    public EventException() {}
+
+    public EventException(String message){ super(message); }
+
+    public EventException(Throwable cause) { super(cause); }
+
 }

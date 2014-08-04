@@ -1,18 +1,11 @@
 package pw.oxcafebabe.marcusant.eventbus.managers.iridium;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
 
-import pw.oxcafebabe.marcusant.eventbus.Event;
+import pw.oxcafebabe.marcusant.eventbus.*;
 import pw.oxcafebabe.marcusant.eventbus.EventListener;
-import pw.oxcafebabe.marcusant.eventbus.EventManager;
-import pw.oxcafebabe.marcusant.eventbus.ListenerFilter;
-import pw.oxcafebabe.marcusant.eventbus.Priority;
+import pw.oxcafebabe.marcusant.eventbus.exceptions.EventException;
 import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
 
 /**
@@ -21,158 +14,132 @@ import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
  */
 public class IridiumEventManager implements EventManager {
 
+    /**
+     * Internal logic for verification of method signatures that will receive events
+     *
+     * @param methodParent  class containing the method
+     * @param method        method
+     * @throws InvalidListenerException if the method signature is invalid
+     */
+    private static void validateMethodSignature(Class methodParent, Method method) throws InvalidListenerException {
+        // Firstly, the method should be unary
+        if(method.getParameterCount() != 1) throw new InvalidListenerException(methodParent, method);
+
+        // Check assignability
+        if(!Event.class.isAssignableFrom(method.getParameterTypes()[0])) throw new InvalidListenerException(methodParent, method);
+    }
+
 	/**
 	 * Map that maps events to an ArrayList of all methods listening for it, in order by priority.
 	 */
-	private final Map<Class<? extends Event>, List<ListeningMethod>> orderedListeningMethods = new HashMap<Class<? extends Event>, List<ListeningMethod>>(); //We assume that these lists will always be ArrayLists
-	
-	/**
-	 * Map that maps events to an array of all methods listening for it, in order by priority.
-	 * This map is baked in sortEventsByPriority
-	 */
-	private final Map<Class<? extends Event>, ListeningMethod[]> cookedOrderedListeningMethods = new HashMap<Class<? extends Event>, ListeningMethod[]>(); //We assume that these lists will always be ArrayLists
-	
-	/**
-	 * Whether the listening method map is "clean" (sorted properly based on priority)
-	 */
-	private boolean unclean = false;
-	
-	@SuppressWarnings("unchecked")
+	private final Map<Class<? extends Event>, List<Subscriber<?>>> registeredSubscribers = new HashMap<>();
+
+    @Override
+    public synchronized <ET extends Event> void registerSubscriber(Class<ET> eventType, Subscriber<ET> subscriber) {
+        if(!registeredSubscribers.containsKey(eventType)) registeredSubscribers.put(eventType, new ArrayList<Subscriber<?>>());
+        List<Subscriber<?>> subsList = registeredSubscribers.get(eventType);
+        if(!subsList.contains(subscriber)) subsList.add(subscriber);
+
+        subsList.sort(new Subscriber.SubscriberComparator());
+    }
+
+    @Override
+    public synchronized void unregisterSubscriber(Class<? extends Event> eventType, Subscriber<?> subscriber) {
+        if(!registeredSubscribers.containsKey(eventType)) {
+            registeredSubscribers.get(eventType).remove(subscriber);
+        }
+    }
+
+    @Override
+    public final void register(Object listeningObject) throws EventException {
+        registerObject(listeningObject);
+    }
+
+    /**
+     * Register all methods in one class that are annotated with {@link pw.oxcafebabe.marcusant.eventbus.EventListener}
+     * @param listeningObject Object to fire events to
+     * @throws InvalidListenerException if the listener annotation is incomplete or contains illegal values
+     */
 	@Override
-	public synchronized void register(Object listeningObject) throws InvalidListenerException {
-		List<Class<? extends Event>> dirtyEvents = new ArrayList<Class<? extends Event>>();
-		
-		Class<?> objectClass = listeningObject.getClass();
-		for(Method m : objectClass.getDeclaredMethods()) {
-			for(Annotation a : m.getDeclaredAnnotations()) {
-				if(a.annotationType().equals(EventListener.class)) {
-					EventListener eventListener = (EventListener)a;
-					if(m.getParameterTypes().length != 1) {
-						throw new InvalidListenerException(objectClass, m);
-					}
-					Class<?> parameter = m.getParameterTypes()[0];
-					if(Event.class.isAssignableFrom(parameter)) {
-						Class<? extends Event> event = (Class<? extends Event>) parameter;
-						
-						this.unclean = true;
-						dirtyEvents.add(event);
-						if(!this.orderedListeningMethods.containsKey(event)) {
-							this.orderedListeningMethods.put(event, new CopyOnWriteArrayList<ListeningMethod>());
-						}
-						m.setAccessible(true); //people report speedups when invoking, so why not. Removes overhead from access checks.
-						List<ListeningMethod> listeningMethods = this.orderedListeningMethods.get(event);
-						List<ListenerFilter> filterList = new ArrayList<ListenerFilter>();
-						for(Class<? extends ListenerFilter> filterClass : eventListener.filters()) {
-							try {
-								filterList.add(filterClass.newInstance());
-							} catch (Exception e) {
-								throw new InvalidListenerException(objectClass, m);
-							}
-						}
-						ListenerFilter[] filters = filterList.toArray(new ListenerFilter[filterList.size()]);
-						ListeningMethod listeningMethod = new ListeningMethod(listeningObject, m, eventListener.value(), event, filters);
-						listeningMethods.add(listeningMethod);
-					} else {
-						throw new InvalidListenerException(objectClass, m);
-					}
-				}
-			}
-		}
-		
-		if(this.unclean) {
-			this.sortEventsByPriority(dirtyEvents.toArray(new Class[dirtyEvents.size()]));
-			this.unclean = false;
-		}
+	public void registerObject(Object listeningObject) throws EventException {
+
+        Map<Class<? extends Event>, List<Subscriber<?>>> eventsDelta = new HashMap<>();
+
+        for(Method clazzMethod : listeningObject.getClass().getDeclaredMethods()) {
+            if(clazzMethod.isAnnotationPresent(EventListener.class)){
+                EventListener listenerAnnotation = clazzMethod.getAnnotation(EventListener.class);
+
+                // After this line, it is OK to cast parameter 0 of clazzMethod to Event
+                validateMethodSignature(listeningObject.getClass(), clazzMethod);
+
+                //this cast is implicity safe, because the method would have excepted during signature validation
+                //noinspection unchecked
+                Class<Event> eventType = (Class<Event>) clazzMethod.getParameterTypes()[0];
+
+                // Use the MethodAsSubscriber factory to create a subscriber
+                Subscriber<?> subscriber = MethodAsSubscriber.createFromMethod(eventType, listeningObject, clazzMethod);
+
+                if(!eventsDelta.containsKey(eventType)) eventsDelta.put(eventType, new ArrayList<Subscriber<?>>());
+
+                eventsDelta.get(eventType).add(subscriber);
+            }
+        }
+
+        // Merge registeredSubscribers and sort subbers
+        synchronized (registeredSubscribers) {
+            for(Map.Entry<Class<? extends Event>, List<Subscriber<?>>> eventEntry : eventsDelta.entrySet()) {
+                Class<? extends Event> eventType    = eventEntry.getKey();
+                List<Subscriber<?>> subscribers     = eventEntry.getValue();
+                if(registeredSubscribers.containsKey(eventType)){
+                    registeredSubscribers.get(eventType).addAll(subscribers);
+                } else {
+                    registeredSubscribers.put(eventType, new ArrayList<>(subscribers));
+                }
+
+                registeredSubscribers.get(eventType).sort(new Subscriber.SubscriberComparator());
+            }
+        }
 	}
 
-	@Override
-	public synchronized boolean unregister(Object listeningObject) {
-		boolean succeeded = true;
-		for(List<ListeningMethod> methodList : this.orderedListeningMethods.values()) {
-			for(ListeningMethod m : methodList) {
-				if(m.getOwner().equals(listeningObject)) {
-					if(!methodList.remove(m)) {
-						succeeded = false;
-					}
-				}
-			}
-		}
-		this.recookListeningMethods();
-		return succeeded;
+    @Override
+    public final boolean unregister(Object listeningObject) {
+        return unregisterObject(listeningObject);
+    }
+
+    @Override
+	public boolean unregisterObject(Object listeningObject) {
+        /*
+         * It is possible to implement this with the Subscriber API based system.
+         * The reason for my not doing so is that they would create a bit of bloat,
+         * and there is no reason to detach an entire class at runtime given the intended use for this library.
+         */
+		throw new UnsupportedOperationException("Runtime detach is not supported for classes");
 	}
 
-	@Override
-	public void push(Event event) {
-		ListeningMethod[] listeningMethods = this.cookedOrderedListeningMethods.get(event.getClass());
-		if(listeningMethods == null)return;
-		for(ListeningMethod m : listeningMethods) 
-		{
-			if(m.hasFilters) {
-				boolean failedFilter = false;
-				for(ListenerFilter filter : m.getFilters()) {
-					try {
-						if(!filter.shouldSend(event, m.getMethod()))failedFilter = true;
-					} catch(Exception e) { //Event was not the event the filter was expecting
-						e.printStackTrace();
-					}
-				}
-				if(failedFilter)continue; //failed a filter, don't fire the event
-			}
-			try {
-				m.getMethod().invoke(m.getOwner(), event);
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	/**
-	 * Pushes an event with no filter checking. This removes overhead from checking for filters.
-	 * Only useful in extreme situations where performance is critical.
-	 * @param event Event to push
-	 */
-	public void pushSimple(Event event) {
-		ListeningMethod[] listeningMethods = this.cookedOrderedListeningMethods.get(event.getClass());
-		if(listeningMethods == null)return;
-		for(ListeningMethod m : listeningMethods) //Benchmarking shows the the performance difference between foreach and for + get is negligible for this event manager
-		{
-			try {
-				m.getMethod().invoke(m.getOwner(), event);
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	/**
-	 * Sorts the given events by priority in the ordered listening method map.
-	 * @param dirtyEvents Events that need to be resorted
-	 */
-	private void sortEventsByPriority(Class<? extends Event> ... dirtyEvents) {
-		for(Class<? extends Event> event : dirtyEvents) {
-			List<ListeningMethod> registeredListeningMethods = orderedListeningMethods.get(event);
-			List<ListeningMethod> orderedListeningMethods = new CopyOnWriteArrayList<ListeningMethod>();
-			for(Priority p : Priority.values()) {
-				for(ListeningMethod listeningMethod : registeredListeningMethods) {
-					if(listeningMethod.getPriority().equals(p)) {
-						orderedListeningMethods.add(listeningMethod);
-					}
-				}
-			}
-			this.orderedListeningMethods.put(event, orderedListeningMethods);
-			this.cookedOrderedListeningMethods.put(event, orderedListeningMethods.toArray(new ListeningMethod[orderedListeningMethods.size()]));
-		}
-	}
-	
-	/**
-	 * Recooks the cookedOrderedListeningMethods
-	 */
-	private void recookListeningMethods() {
-		this.cookedOrderedListeningMethods.clear();
-		for(Class<? extends Event> e : this.orderedListeningMethods.keySet()) {
-			List<ListeningMethod> l = this.orderedListeningMethods.get(e);
-			this.cookedOrderedListeningMethods.put(e, l.toArray(new ListeningMethod[l.size()]));
-		}
+
+    @Override
+	public <ET extends Event> void push(ET event) {
+        List<Subscriber<ET>> subscribers;
+
+        synchronized (registeredSubscribers) {
+            if(!registeredSubscribers.containsKey(event.getClass())) return;
+
+            // Inspection disabled because all inserts in to registeredSubscribers are type insured
+            // due to type erasure, we can not have per-pair types.
+            // noinspection unchecked
+            subscribers = (List<Subscriber<ET>>) new ArrayList(registeredSubscribers.get(event.getClass()));
+        }
+
+        for(Subscriber<ET> subscriber : subscribers) {
+            boolean txDeterminate = true;
+            for(ListenerFilter filter : subscriber.getFilters()) {
+                // This can only occur if someone fucks something up in an annotation, as listeners should be typesafe when passed to subscribers
+                // noinspection unchecked
+                txDeterminate = txDeterminate && filter.shouldSend(event);
+            }
+
+            if(txDeterminate) subscriber.eventReceived(event);
+        }
 	}
 
 }

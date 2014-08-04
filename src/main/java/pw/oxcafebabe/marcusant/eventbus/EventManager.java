@@ -1,5 +1,6 @@
 package pw.oxcafebabe.marcusant.eventbus;
 
+import pw.oxcafebabe.marcusant.eventbus.exceptions.EventException;
 import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
 
 /**
@@ -7,25 +8,57 @@ import pw.oxcafebabe.marcusant.eventbus.exceptions.InvalidListenerException;
  * @author Marcus
  */
 public interface EventManager {
-	
-	/**
+
+    /**
+     * Register a subscriber
+     *
+     * @param eventType     event type
+     * @param subscriber    subscriber
+     * @param <ET>          event generic
+     */
+    public <ET extends Event> void registerSubscriber(Class<ET> eventType, Subscriber<ET> subscriber);
+
+    /**
+     * Unregister a subscriber
+     *
+     * @param eventType     event type
+     * @param subscriber    subscriber
+     */
+    public void unregisterSubscriber(Class<? extends Event> eventType, Subscriber<?> subscriber);
+
+    /**
 	 * Registers an object as a listener for events.
 	 * @param listeningObject Object to fire events to
 	 * @throws InvalidListenerException A method in the listening object's class is marked as a listener but is invalid.
+     * @deprecated in favour of {@link #registerObject(Object)}
 	 */
-	public void register(Object listeningObject) throws InvalidListenerException;
-	
+    @Deprecated
+	public void register(Object listeningObject) throws EventException;
+
+    /**
+     * Registers an object as a listener for events.
+     * @param listeningObject Object to fire events to
+     * @throws InvalidListenerException A method in the listening object's class is marked as a listener but is invalid.
+     */
+    public void registerObject(Object listeningObject) throws EventException;
+
+    /**
+     * @deprecated in favour of {@link #unregisterObject(Object)}
+     */
+    @Deprecated
+    public boolean unregister(Object listeningObject);
+
 	/**
 	 * Unregisters an object from listening for events.
 	 * @param listeningObject Object to unregister
 	 * @return Whether the object existed and was successfully removed
 	 */
-	public boolean unregister(Object listeningObject);
+	public boolean unregisterObject(Object listeningObject);
 	
 	/**
 	 * Publishes an event to all registered listening methods.
 	 * @param event Event to publish
 	 */
-	public void push(Event event);
+	public <ET extends Event> void push(ET event);
 
 }

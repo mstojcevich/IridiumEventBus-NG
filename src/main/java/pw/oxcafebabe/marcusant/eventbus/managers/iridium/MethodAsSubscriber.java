@@ -1,11 +1,14 @@
 package pw.oxcafebabe.marcusant.eventbus.managers.iridium;
 
 import pw.oxcafebabe.marcusant.eventbus.Event;
+import pw.oxcafebabe.marcusant.eventbus.EventListener;
 import pw.oxcafebabe.marcusant.eventbus.ListenerFilter;
 import pw.oxcafebabe.marcusant.eventbus.Subscriber;
+import pw.oxcafebabe.marcusant.eventbus.exceptions.EventException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,10 +19,29 @@ import java.util.List;
  */
 public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET> {
 
+    public static <X extends Event> MethodAsSubscriber<X> createFromMethod(Class<X> eventType, Object methodParent, Method method) throws EventException {
+        EventListener listenerAnnotation = method.getAnnotation(EventListener.class);
+
+        // Collect filter instances
+        List<ListenerFilter<X>> filters = new ArrayList<>();
+
+        for(Class<? extends ListenerFilter> filterClass : listenerAnnotation.filters())
+            try {
+                filters.add( (ListenerFilter<X>) filterClass.newInstance() );
+            } catch (InstantiationException e) {
+                throw new EventException(e);
+            } catch (IllegalAccessException e) {
+                throw new EventException("There is not a visible constructor for filter " + filterClass.getName());
+            }
+
+        // Reflective method types are untyped. no matter.
+        return  new MethodAsSubscriber<>(methodParent, method, listenerAnnotation.priority().getPriorityValue(), filters);
+    }
+
     private final int priority;
     private final Object methodParent;
     private final Method bridgedMethod;
-    private final List<ListenerFilter> filters;
+    private final List<ListenerFilter<ET>> filters;
 
     /**
      * Default constructor
@@ -28,7 +50,7 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
      * @param priority      priority of the subscriber
      */
     public MethodAsSubscriber(Object methodParent, Method bridgedMethod, int priority,
-                              List<ListenerFilter> filters) {
+                              List<ListenerFilter<ET>> filters) {
         this.priority       = priority;
         this.methodParent   = methodParent;
         this.bridgedMethod  = bridgedMethod;
@@ -53,7 +75,7 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
     }
 
     @Override
-    public List<ListenerFilter> getFilters() {
+    public List<ListenerFilter<ET>> getFilters() {
         return filters;
     }
 }

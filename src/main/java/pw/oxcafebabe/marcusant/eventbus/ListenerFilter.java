@@ -7,12 +7,12 @@ package pw.oxcafebabe.marcusant.eventbus;
  * @param <T> Event to filter
  */
 public interface ListenerFilter<T extends Event> {
-	
-	/**
-	 * Checks whether an event invocation is valid and follows the filter
-	 * @param event Event to be sent
-	 * @return Whether the event should be sent
-	 */
-	public boolean shouldSend(T event);
+
+    /**
+     * Checks whether an event invocation is valid and follows the filter
+     * @param event Event to be sent
+     * @return Whether the event should be sent
+     */
+    public boolean shouldSend(T event);
 
 }

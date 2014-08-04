@@ -63,9 +63,9 @@ public final class MethodAsSubscriber<ET extends Event> implements Subscriber<ET
             bridgedMethod.invoke(methodParent, event);
         } catch (IllegalAccessException e) {
             // There is no reason an error occuring during subscriber invocation should take down the entire bus
-            // TODO SLFJ
+            throw new RuntimeException("Illegal access exception caught during bridged method invocation in Method Subscriber", e);
         } catch (InvocationTargetException e) {
-            // TODO SLFJ
+            throw new RuntimeException("An exception was thrown during invocation of bridge method", e);
         }
     }
 

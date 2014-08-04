@@ -1,4 +1,4 @@
-package pw.oxcafebabe.marcusant.eventbus.example;
+package pw.oxcafebabe.marcusant.eventbus;
 
 import pw.oxcafebabe.marcusant.eventbus.EventListener;
 import pw.oxcafebabe.marcusant.eventbus.Priority;
@@ -12,12 +12,7 @@ public class TestListener {
 	
 	@EventListener //Will listen at default priority
 	public void listenEvent1(SimpleEvent event /*Will listen for TestEvent*/) {
-		System.out.println("world!");
-	}
-	
-	@EventListener(Priority.HIGH) //Will listen at high priority
-	public void listenEvent2(SimpleEvent event /*Will listen for TestEvent*/) {
-		System.out.print("Hello ");
+		throw new RuntimeException("Event Received");
 	}
 	
 

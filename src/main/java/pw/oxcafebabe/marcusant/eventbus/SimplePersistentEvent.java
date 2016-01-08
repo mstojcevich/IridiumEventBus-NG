@@ -12,5 +12,4 @@ public class SimplePersistentEvent extends SimpleEvent {
     public final void cancel() throws EventCancellationException {
         throw new EventCancellationException("Event cannot be cancelled");
     }
-
 }

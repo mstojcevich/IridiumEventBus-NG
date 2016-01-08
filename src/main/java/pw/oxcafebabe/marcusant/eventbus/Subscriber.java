@@ -15,30 +15,29 @@ public interface Subscriber<ET extends Event> {
      * Called upon receipt of an event
      * @param event event
      */
-    public void eventReceived(ET event);
+    void eventReceived(ET event);
 
     /**
      * Returns a value describing the ordering that the event would prefer
      *
      * @return priority
      */
-    public int getPriorityValue();
+    int getPriorityValue();
 
     /**
      * Get a list of filters for the subscriber
      *
      * @return filters
      */
-    public List<ListenerFilter<ET>> getFilters();
+    List<ListenerFilter<ET>> getFilters();
 
     /**
      * Compares two subscribers by priority
      */
-    public static class SubscriberComparator implements Comparator<Subscriber> {
+    class SubscriberComparator implements Comparator<Subscriber> {
         @Override
         public int compare(Subscriber o1, Subscriber o2) {
             return o2.getPriorityValue() - o1.getPriorityValue();
         }
     }
-
 }

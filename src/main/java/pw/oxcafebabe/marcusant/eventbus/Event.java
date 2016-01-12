@@ -12,7 +12,7 @@ public interface Event {
      * Gets whether the event was cancelled
      * @return Whether the event was cancelled
      */
-    public boolean isCancelled();
+    boolean isCancelled();
 
     /**
      * Sets whether the event was cancelled
@@ -20,11 +20,11 @@ public interface Event {
      * @deprecated in favour of {@link #cancel()}
      */
     @Deprecated
-    public void setCancelled(boolean cancelled);
+    void setCancelled(boolean cancelled);
 
     /**
      * Cancel the event
      */
-    public void cancel() throws EventCancellationException;
+    void cancel() throws EventCancellationException;
 
 }

@@ -7,14 +7,13 @@ import pw.oxcafebabe.marcusant.eventbus.exceptions.EventCancellationException;
 import pw.oxcafebabe.marcusant.eventbus.exceptions.EventException;
 import pw.oxcafebabe.marcusant.eventbus.managers.iridium.IridiumEventManager;
 
-import java.lang.reflect.InvocationTargetException;
-
 public class EventBus {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    @Test public void testAttachSubscriber() {
+    @Test
+    public void testAttachSubscriber() {
         exception.expect(RuntimeException.class);
         exception.expectMessage("Test Succeeded");
 
@@ -30,7 +29,8 @@ public class EventBus {
 		eventManager.push(new SimpleEvent());
 	}
 
-    @Test public void testCancelEvent() {
+    @Test
+    public void testCancelEvent() {
         EventManager manager = new IridiumEventManager();
 
         manager.registerSubscriber(SimpleEvent.class, new SimpleSubscriber<SimpleEvent>(1) {
@@ -52,7 +52,8 @@ public class EventBus {
         });
     }
 
-    @Test public void testUncancellableEvent() {
+    @Test
+    public void testUncancellableEvent() {
         EventManager manager = new IridiumEventManager();
 
         exception.expect(RuntimeException.class);
@@ -72,7 +73,8 @@ public class EventBus {
         manager.push(new SimplePersistentEvent());
     }
 
-    @Test public void registerClass() throws EventException {
+    @Test
+    public void registerClass() throws EventException {
         EventManager manager = new IridiumEventManager();
 
         exception.expect(RuntimeException.class);
@@ -83,7 +85,8 @@ public class EventBus {
         manager.push(new SimpleEvent());
     }
 
-    @Test public void printLoadTest() {
+    @Test
+    public void printLoadTest() {
         EventManager manager = new IridiumEventManager();
 
         for(int i = 0; i <= 10; i++) {

@@ -13,6 +13,5 @@ public interface ListenerFilter<T extends Event> {
      * @param event Event to be sent
      * @return Whether the event should be sent
      */
-    public boolean shouldSend(T event);
-
+    boolean shouldSend(T event);
 }

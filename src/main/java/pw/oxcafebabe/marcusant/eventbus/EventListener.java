@@ -21,19 +21,19 @@ public @interface EventListener {
      * @deprecated as 'value' does not imply that this is in fact a priority value
 	 */
     @Deprecated
-	public Priority value() default Priority.NORMAL;
+	Priority value() default Priority.NORMAL;
 
     /**
      * Priority of event subscriber
      *
      * @return subscriber priority
      */
-    public Priority priority() default Priority.NORMAL;
+	Priority priority() default Priority.NORMAL;
 	
 	/**
 	 * Filters to apply to the event before firing to the listener
 	 * @return A list of filters to run the event and method through before firing
 	 */
-	public Class<? extends ListenerFilter<?>>[] filters() default { Cancellable.class };
+	Class<? extends ListenerFilter<?>>[] filters() default { Cancellable.class };
 
 }

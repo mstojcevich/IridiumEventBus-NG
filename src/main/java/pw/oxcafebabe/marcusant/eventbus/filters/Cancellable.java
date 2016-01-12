@@ -13,5 +13,4 @@ public class Cancellable implements ListenerFilter<Event> {
 	public boolean shouldSend(Event event) {
 		return !event.isCancelled();
 	}
-
 }

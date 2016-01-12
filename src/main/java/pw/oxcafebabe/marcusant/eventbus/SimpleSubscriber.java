@@ -19,7 +19,7 @@ public abstract class SimpleSubscriber<ET extends Event> implements Subscriber<E
     }
 
     public SimpleSubscriber(int priority) {
-        this(priority, new ArrayList<ListenerFilter<ET>>());
+        this(priority, new ArrayList<>());
     }
 
     public SimpleSubscriber() {
